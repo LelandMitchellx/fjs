@@ -115,11 +115,13 @@ class AndroidEnvironment {
     final ccKey = 'CC_${target.rust}';
     final ccValue = path.join(toolchainPath, 'clang$exe');
     final cfFlagsKey = 'CFLAGS_${target.rust}';
+    // Agent: Specify the target compiler flags
     final cFlagsValue = targetArg;
 
     final cxxKey = 'CXX_${target.rust}';
     final cxxValue = path.join(toolchainPath, 'clang++$exe');
     final cxxFlagsKey = 'CXXFLAGS_${target.rust}';
+    // Agent: Specify the target C++ compiler flags
     final cxxFlagsValue = targetArg;
 
     final linkerKey =
@@ -161,8 +163,34 @@ class AndroidEnvironment {
     );
 
     final bindgenKey = "BINDGEN_EXTRA_CLANG_ARGS_${target.rust}";
+    // Agent: Normalize paths to forward slashes on Windows to prevent backslash stripping in libclang/bindgen, and specify the target triple with API version
+    final sysrootForClang = sysroot.replaceAll('\\', '/');
+    final includeForClang = path.join(sysroot, 'usr', 'include', target.rust).replaceAll('\\', '/');
+    
+    // Agent: Find NDK's builtin Clang include directory on Windows to solve 'stdbool.h not found' bindgen error
+    String extraInclude = '';
+    final clangLibDir = Directory(path.join(
+      ndkPath,
+      'toolchains',
+      'llvm',
+      'prebuilt',
+      hostArch,
+      'lib',
+      'clang',
+    ));
+    if (clangLibDir.existsSync()) {
+      final subDirs = clangLibDir.listSync().whereType<Directory>();
+      for (final subDir in subDirs) {
+        final includeDir = Directory(path.join(subDir.path, 'include'));
+        if (includeDir.existsSync()) {
+          extraInclude = " -I${includeDir.path.replaceAll('\\', '/')}";
+          break;
+        }
+      }
+    }
+
     final bindgenValue =
-        "--sysroot=$sysroot -I${path.join(sysroot, 'usr', 'include', target.rust)}";
+        "--target=${target.rust}$minSdkVersion --sysroot=$sysrootForClang -I$includeForClang$extraInclude";
 
     final env = {
       arKey: arValue,
