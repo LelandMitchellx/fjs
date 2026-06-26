@@ -61,20 +61,18 @@ abstract class CargoKitBuildTask extends DefaultTask {
 
         def rootProjectDir = project.rootProject.projectDir
 
-        // Agent: Gradle 9.x 兼容 - project.exec() 已移除, 改用 providers.exec()
-        // Agent: Path 对象需转为 String 以支持 Gradle 序列化
         if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
-            project.providers.exec {
-                commandLine 'chmod', '+x', path.toString()
-            }.result.get()
+            project.exec {
+                commandLine 'chmod', '+x', path
+            }
         }
 
-        project.providers.exec {
-            executable path.toString()
+        project.exec {
+            executable path
             args "build-gradle"
-            environment "CARGOKIT_ROOT_PROJECT_DIR", rootProjectDir.toString()
+            environment "CARGOKIT_ROOT_PROJECT_DIR", rootProjectDir
             environment "CARGOKIT_TOOL_TEMP_DIR", "${buildDir}/build_tool"
-            environment "CARGOKIT_MANIFEST_DIR", manifestDir.toString()
+            environment "CARGOKIT_MANIFEST_DIR", manifestDir
             environment "CARGOKIT_CONFIGURATION", buildMode
             environment "CARGOKIT_TARGET_TEMP_DIR", buildDir
             environment "CARGOKIT_OUTPUT_DIR", outputDir
@@ -84,7 +82,7 @@ abstract class CargoKitBuildTask extends DefaultTask {
             environment "CARGOKIT_MIN_SDK_VERSION", minSdkVersion
             environment "CARGOKIT_TARGET_PLATFORMS", targetPlatforms.join(",")
             environment "CARGOKIT_JAVA_HOME", System.properties['java.home']
-        }.result.get()
+        }
     }
 }
 
